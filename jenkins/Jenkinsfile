@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+
+    environment {
+        BACKEND_IMAGE = 'backend'
+        FRONTEND_IMAGE = 'frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                script {
+                    sh 'docker-compose build backend'
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                script {
+                    sh 'docker-compose build frontend'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sh 'docker-compose up -d'
+                }
+            }
+        }
+    }
+}

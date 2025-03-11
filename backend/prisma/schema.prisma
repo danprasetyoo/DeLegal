@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int     @id @default(autoincrement())
+  name       String
+  email      String  @unique
+  password   String
+  role       Role
+  createdAt  DateTime @default(now())
+
+  requests             Request[] @relation(name: "UserRequests")
+  reviewedRequests     Request[] @relation(name: "ReviewedRequests")
+  
+  consultations        Consultation[] @relation(name: "UserConsultations")
+  reviewedConsultations Consultation[] @relation(name: "ReviewedConsultations")
+
+  LegalDocument LegalDocument[]
+
+  Comment Comment[]
+
+  DocumentHistory DocumentHistory[]
+}
+
+
+model LegalDocument {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  uploadedBy  User @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+  fileUrl     String
+  createdAt   DateTime @default(now())
+
+  comments    Comment[]
+  history     DocumentHistory[]
+  tags        DocumentTag[]
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  documents   LegalDocument[]
+}
+
+model Tag {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  documents   DocumentTag[]
+}
+
+model DocumentTag {
+  documentId Int
+  tagId      Int
+  document   LegalDocument @relation(fields: [documentId], references: [id])
+  tag        Tag @relation(fields: [tagId], references: [id])
+  @@id([documentId, tagId])
+}
+
+model Comment {
+  id         Int     @id @default(autoincrement())
+  content    String
+  document   LegalDocument @relation(fields: [documentId], references: [id])
+  documentId Int
+  user       User @relation(fields: [userId], references: [id])
+  userId     Int
+  createdAt  DateTime @default(now())
+}
+
+model DocumentHistory {
+  id         Int     @id @default(autoincrement())
+  document   LegalDocument @relation(fields: [documentId], references: [id])
+  documentId Int
+  previousVersion String
+  updatedBy   User @relation(fields: [updatedById], references: [id])
+  updatedById Int
+  updatedAt   DateTime @default(now())
+}
+
+model Request {
+  id             Int     @id @default(autoincrement())
+  user           User    @relation(name: "UserRequests", fields: [userId], references: [id])
+  userId         Int
+  documentTitle  String
+  documentType   DocumentType
+  reason         String
+  status         Status  @default(PENDING)
+  createdAt      DateTime @default(now())
+
+  reviewedBy     User?   @relation(name: "ReviewedRequests", fields: [reviewedById], references: [id])
+  reviewedById   Int?
+  reviewNotes    String?
+  updatedAt      DateTime @updatedAt
+
+  uploadedFiles  UploadedDocument[]
+}
+
+model UploadedDocument {
+  id        Int     @id @default(autoincrement())
+  request   Request @relation(fields: [requestId], references: [id])
+  requestId Int
+  fileUrl   String
+  uploadedAt DateTime @default(now())
+}
+
+model Consultation {
+  id           Int     @id @default(autoincrement())
+  user         User    @relation(name: "UserConsultations", fields: [userId], references: [id])
+  userId       Int
+  topic        String
+  description  String
+  status       Status  @default(PENDING)
+  scheduledAt  DateTime?
+
+  reviewedBy   User?   @relation(name: "ReviewedConsultations", fields: [reviewedById], references: [id])
+  reviewedById Int?
+  reviewNotes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+enum Role {
+  ADMIN
+  USER
+  LAWYER
+}
+
+enum DocumentType {
+  PERJANJIAN
+  REGULASI
+  KEBIJAKAN
+  DOKUMEN_LAIN
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
